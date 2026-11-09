@@ -82,6 +82,18 @@ The signed Android APK is pre-built and ready to install on any Android device (
   * 🛡️ Security Auditor (Vulnerability scanning & remediation)
   * 🧪 QA & Test Automation (Unit tests, edge cases, TDD)
 
+* **📱 Universal Device & OS Support (Mobile, Pads, Tablets, Desktops)**:
+  * **Tablets & Pads (iPad / Galaxy Tab / Foldables)**:
+    * Automatic **Dual-Pane Split Screen** (`◫` toggle): Side-by-side AI Chat and Code Editor.
+    * Left Activity Bar replacing bottom navigation for maximum vertical code view.
+    * Physical keyboard shortcuts: `Ctrl+Enter` (Send), `Ctrl+S` (Save), `Ctrl+\` (Split Toggle), `Ctrl+M` (Model Picker).
+  * **Smartphones (Android & iOS)**:
+    * Compact touch-optimized mobile layout with swipe navigation.
+    * Generous touch targets (>48px) adhering to WCAG and Material/iOS guidelines.
+  * **Cross-Platform PWA (Progressive Web App)**:
+    * Installable standalone on **iOS / iPadOS** (Safari "Add to Home Screen"), **macOS**, **Windows**, **Linux**, and **ChromeOS** / **Samsung DeX**.
+    * Full offline Service Worker caching for instant offline boot.
+
 * **⚡ Native Android Bridge**:
   * Native clipboard copying with Android toast notifications.
   * Native Android Intent share sheet.

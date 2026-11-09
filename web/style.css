@@ -939,3 +939,88 @@ html, body {
   from { opacity: 0; transform: translate(-50%, 10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
+
+/* --- TABLET, PAD, FOLDABLE & DESKTOP RESPONSIVE LAYOUT --- */
+@media (min-width: 768px) {
+  :root {
+    --bottom-nav-height: 0px;
+    --sidebar-width: 64px;
+  }
+
+  #app {
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--sidebar-width);
+  }
+
+  /* Transform bottom navigation into sleek vertical Activity Bar on tablets and pads */
+  .bottom-nav {
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: calc(var(--safe-top) + 14px);
+    gap: 8px;
+    border-top: none;
+    border-right: 1px solid var(--border-color);
+    padding-bottom: 0;
+  }
+
+  .nav-item {
+    height: 54px;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .nav-icon {
+    font-size: 22px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+  }
+
+  /* Dual-Pane Layout for Tablets & Pads (Chat + Editor side-by-side) */
+  #app.dual-pane-active .view-container {
+    display: flex;
+    flex-direction: row;
+  }
+
+  #app.dual-pane-active #tab-chat {
+    display: flex !important;
+    position: relative;
+    width: 45%;
+    border-right: 1px solid var(--border-color);
+  }
+
+  #app.dual-pane-active #tab-editor {
+    display: flex !important;
+    position: relative;
+    width: 55%;
+  }
+
+  .provider-selector-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .modal-card {
+    max-width: 640px;
+    margin: auto;
+    border-radius: var(--radius-lg);
+  }
+}
+
+@media (min-width: 1200px) {
+  .provider-selector-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  #app.dual-pane-active #tab-chat {
+    width: 40%;
+  }
+
+  #app.dual-pane-active #tab-editor {
+    width: 60%;
+  }
+}

@@ -458,7 +458,35 @@ document.addEventListener('DOMContentLoaded', () => {
   updateProviderModelPill();
   renderProvidersGrid();
   checkAndroidBridge();
+  initResponsiveDeviceMode();
+  registerPwaServiceWorker();
 });
+
+function initResponsiveDeviceMode() {
+  const app = document.getElementById('app');
+  // Auto-activate dual-pane mode on tablets, iPads, and wide desktop screens
+  if (window.innerWidth >= 850) {
+    app.classList.add('dual-pane-active');
+  }
+}
+
+function registerPwaServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(() => {
+      console.log('OpenCode PWA Service Worker Registered');
+    }).catch((err) => {
+      console.log('SW registration note:', err);
+    });
+  }
+}
+
+function toggleSplitScreen() {
+  triggerHaptic(20);
+  const app = document.getElementById('app');
+  app.classList.toggle('dual-pane-active');
+  const isActive = app.classList.contains('dual-pane-active');
+  showToast(isActive ? '◫ Split Screen (Chat + Editor) Active' : '📱 Single Pane Mode');
+}
 
 // --- LOAD / SAVE SETTINGS ---
 function loadStoredSettings() {
@@ -596,6 +624,33 @@ function setupEventListeners() {
       chatInput.focus();
       sendMessage();
     });
+  });
+
+  // Split-screen toggle (Tablets & Pads)
+  const splitBtn = document.getElementById('btn-split-toggle');
+  if (splitBtn) {
+    splitBtn.addEventListener('click', toggleSplitScreen);
+  }
+
+  // Global Hardware Keyboard Shortcuts (for iPad/Android tablet keyboards and Desktop)
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+S or Cmd+S -> Save current file
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      saveSettings();
+      showToast('Workspace Saved');
+      triggerHaptic(20);
+    }
+    // Ctrl+\ or Cmd+\ -> Toggle Split Screen
+    if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+      e.preventDefault();
+      toggleSplitScreen();
+    }
+    // Ctrl+M or Cmd+M -> Open Model Picker
+    if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+      e.preventDefault();
+      openModelPickerModal();
+    }
   });
 
   // Model selector modal

@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0d1117">
-  <title>OpenCode Mobile - AI Coding Assistant for Android</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OpenCode">
+  <title>OpenCode Mobile - AI Coding Assistant for All Devices</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,6 +26,7 @@
           <span class="model-pill-badge"></span>
           <span class="model-pill-text" id="model-pill-text">OpenCode AI</span>
         </button>
+        <button class="btn-icon" id="btn-split-toggle" title="Toggle Split Screen (Tablets/Pads)">◫</button>
         <button class="btn-icon" id="btn-new-chat" title="New Chat">＋</button>
       </div>
     </header>

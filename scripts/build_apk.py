@@ -103,6 +103,16 @@ def build_signed_apk(base_apk_path, output_apk_path, web_dir):
         with open(launcher_path, 'rb') as f:
             entries['res/drawable/ic_launcher.png'] = f.read()
 
+    manifest_path = os.path.join(web_dir, 'manifest.json')
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'rb') as f:
+            entries['assets/web/manifest.json'] = f.read()
+
+    sw_path = os.path.join(web_dir, 'sw.js')
+    if os.path.exists(sw_path):
+        with open(sw_path, 'rb') as f:
+            entries['assets/web/sw.js'] = f.read()
+
     # Build MANIFEST.MF
     manifest_lines = [
         "Manifest-Version: 1.0",

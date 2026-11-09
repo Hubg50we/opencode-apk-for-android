@@ -1,0 +1,36 @@
+{
+  "name": "OpenCode Mobile IDE",
+  "short_name": "OpenCode",
+  "description": "Universal AI Coding Assistant & Mobile IDE for all devices, phones, tablets, and pads",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "categories": ["developer", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "url": "./index.html?tab=chat",
+      "icons": [{ "src": "favicon.png", "sizes": "64x64" }]
+    },
+    {
+      "name": "Code Editor",
+      "url": "./index.html?tab=editor",
+      "icons": [{ "src": "favicon.png", "sizes": "64x64" }]
+    }
+  ]
+}
