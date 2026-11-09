@@ -368,38 +368,15 @@ const PROVIDERS_REGISTRY = {
     wire: 'openai'
   },
 
-  // --- LOCAL & CUSTOM ENDPOINTS ---
-  'ollama': {
-    name: 'Ollama (Local)',
-    category: 'local',
-    tag: 'Local Offline AI',
-    defaultModel: 'qwen2.5-coder',
-    models: [
-      { id: 'qwen2.5-coder', name: 'Qwen 2.5 Coder' },
-      { id: 'deepseek-r1', name: 'DeepSeek R1' },
-      { id: 'llama3.2', name: 'Llama 3.2' },
-      { id: 'mistral', name: 'Mistral' }
-    ],
-    endpoint: 'http://127.0.0.1:11434/v1/chat/completions',
-    wire: 'openai'
-  },
-  'lmstudio': {
-    name: 'LM Studio (Local)',
-    category: 'local',
-    tag: 'Port 1234',
-    defaultModel: 'local-model',
-    models: [{ id: 'local-model', name: 'Active Loaded Model' }],
-    endpoint: 'http://127.0.0.1:1234/v1/chat/completions',
-    wire: 'openai'
-  },
+  // --- CUSTOM CLOUD ENDPOINT ---
   'custom': {
-    name: 'Custom OpenAI Endpoint',
+    name: 'Custom Cloud Endpoint (OpenAI API)',
     category: 'custom',
-    tag: 'Self-Hosted / Proxy',
+    tag: 'Cloud Proxy / Gateway',
     keyPlaceholder: 'Optional API Key',
     defaultModel: 'default-model',
     models: [{ id: 'default-model', name: 'Default Model' }],
-    endpoint: 'http://127.0.0.1:8000/v1/chat/completions',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
     wire: 'openai'
   }
 };
@@ -809,7 +786,7 @@ function showWelcomeScreen() {
       <div class="welcome-logo">⚡</div>
       <div class="welcome-title">OpenCode Mobile</div>
       <div class="welcome-subtitle">
-        Your universal AI programming partner for Android. Connected to 25+ AI providers, free model lanes, and local offline backends.
+        Your on-device universal AI programming partner. Connected directly to 25+ external Cloud AI Providers & Free Cloud Coding Models.
       </div>
       <div class="quick-prompts">
         <div class="quick-chip" data-prompt="Create a responsive Flutter bottom navigation bar with icons">📱 Flutter Nav</div>

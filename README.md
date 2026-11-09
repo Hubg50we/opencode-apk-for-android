@@ -54,10 +54,8 @@ The signed Android APK is pre-built and ready to install on any Android device (
     * **MiniMax** (MiniMax-01, abab6.5s)
     * **Zhipu GLM** (GLM-4-Plus, GLM-4-Flash)
     * **Alibaba Qwen / DashScope** (Qwen-Max, Qwen-Coder-Plus)
-  * **Local Offline & Self-Hosted AI**:
-    * **Ollama** (`http://127.0.0.1:11434/v1` or local WiFi IP)
-    * **LM Studio** (`http://127.0.0.1:1234/v1`)
-    * **Custom OpenAI Endpoint** (Custom base URL, token, and model)
+  * **Custom Cloud Gateway / Proxy**:
+    * **Custom OpenAI API Endpoint** (Compatible with Cloudflare AI Gateway, LiteLLM, vLLM cloud instances, or self-hosted cloud proxies)
 
 * **💭 Collapsible Thinking / Reasoning Visualizer**:
   * View reasoning and chain-of-thought in real time for **DeepSeek R1**, **OpenAI o1/o3-mini**, and **Claude 3.7 Sonnet**.
