@@ -155,9 +155,48 @@ def build_signed_apk(base_apk_path, output_apk_path, web_dir):
             zout.writestr(filename, entries[filename])
 
     size_mb = os.path.getsize(output_apk_path) / (1024 * 1024)
-    print(f"[OK] Successfully built signed APK: {output_apk_path}")
-    print(f"[OK] Output APK Size: {size_mb:.2f} MB")
+    print(f"[OK] Generated base APK: {output_apk_path} ({size_mb:.2f} MB)")
+
+    # Apply APK Signature Scheme v2 & v3 + zipalign via uber-apk-signer
+    apply_v2_v3_signature(output_apk_path)
     return output_apk_path
+
+def find_java_binary():
+    import shutil
+    j = shutil.which("java")
+    if j:
+        return j
+
+    candidates = [
+        r"C:\Users\Administrator\AppData\Local\Programs\openjdk\jdk-25.0.5.0.3\bin\java.exe",
+        r"C:\Users\Administrator\AppData\Roaming\.minecraft\runtime\java-runtime-gamma\windows-x64\java-runtime-gamma\bin\java.exe",
+        r"C:\Users\Administrator\AppData\Roaming\.minecraft\sk_runtime\java-17\jdk-17.0.20.1+1-jre\bin\java.exe",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+def apply_v2_v3_signature(apk_path):
+    import subprocess
+    java_bin = find_java_binary()
+    jar_path = os.path.join(os.path.dirname(__file__), "uber-apk-signer-1.3.0.jar")
+
+    if not java_bin:
+        print("[!] Java not found on system PATH; skipping v2/v3 signing block.")
+        return
+
+    if not os.path.exists(jar_path):
+        print(f"[!] uber-apk-signer jar not found at {jar_path}")
+        return
+
+    print(f"[*] Applying APK Signature Scheme v2 & v3 + zipalign with {java_bin}...")
+    cmd = [java_bin, "-jar", jar_path, "-a", apk_path, "--allowResign", "--overwrite"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode == 0:
+        print(f"[OK] APK successfully verified with v2 & v3 signatures and 4-byte zipalign!")
+    else:
+        print(f"[!] Warning during signing: {res.stderr or res.stdout}")
 
 if __name__ == '__main__':
     project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
