@@ -82,6 +82,17 @@ def build_signed_apk(base_apk_path, output_apk_path, web_dir):
                 continue
             entries[item.filename] = zin.read(item.filename)
 
+    # Patch package name in AndroidManifest.xml from com.hubg50we.dc to com.hubg50we.oc
+    # This prevents INSTALL_FAILED_UPDATE_INCOMPATIBLE conflicts with any existing dc- apps!
+    if 'AndroidManifest.xml' in entries:
+        m = entries['AndroidManifest.xml']
+        m = m.replace('com.hubg50we.dc.DYN'.encode('utf-16le'), 'com.hubg50we.oc.DYN'.encode('utf-16le'))
+        m = m.replace('com.hubg50we.dc.and'.encode('utf-16le'), 'com.hubg50we.oc.and'.encode('utf-16le'))
+        target = 'com.hubg50we.dc'.encode('utf-16le') + b'\x00\x00'
+        replacement = 'com.hubg50we.oc'.encode('utf-16le') + b'\x00\x00'
+        m = m.replace(target, replacement)
+        entries['AndroidManifest.xml'] = m
+
     # Inject OpenCode web assets
     entries['assets/web/index.html'] = bundled_html.encode('utf-8')
     entries['assets/web/style.css'] = css_content.encode('utf-8')
@@ -211,7 +222,8 @@ def apply_v2_v3_signature(apk_path):
 if __name__ == '__main__':
     project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     web_dir = os.path.join(project_dir, 'web')
-    base_apk = r"C:\Users\Administrator\.gemini\antigravity\scratch\dc-android.apk"
+    template_apk = os.path.join(os.path.dirname(__file__), 'template.apk')
+    base_apk = template_apk if os.path.exists(template_apk) else r"C:\Users\Administrator\.gemini\antigravity\scratch\dc-android.apk"
     out_apk = os.path.join(project_dir, 'opencode-android.apk')
 
     build_signed_apk(base_apk, out_apk, web_dir)
