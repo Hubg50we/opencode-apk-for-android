@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Android / Gradle
+.gradle/
+build/
+app/build/
+*.iml
+.idea/
+local.properties
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Local private keys (if any)
+*.keystore
+*.jks

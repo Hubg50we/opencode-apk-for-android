@@ -1,0 +1,24 @@
+{
+  "name": "opencode-apk-for-android",
+  "version": "2.1.0",
+  "description": "OpenCode Mobile AI Coding Assistant for Android with support for 25+ AI providers, free model lanes, code editor, and live sandbox",
+  "main": "web/index.html",
+  "scripts": {
+    "build:apk": "python scripts/build_apk.py",
+    "start": "npx serve web"
+  },
+  "keywords": [
+    "opencode",
+    "android",
+    "apk",
+    "ai",
+    "coding-assistant",
+    "deepseek",
+    "claude",
+    "gemini",
+    "openai",
+    "ollama"
+  ],
+  "author": "OpenCode Community",
+  "license": "MIT"
+}

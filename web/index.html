@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <title>OpenCode Mobile - AI Coding Assistant for Android</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-name">Open<span>Code</span></div>
+      </div>
+      <div class="header-actions">
+        <button class="model-pill-btn" id="header-model-btn" title="Switch AI Model">
+          <span class="model-pill-badge"></span>
+          <span class="model-pill-text" id="model-pill-text">OpenCode AI</span>
+        </button>
+        <button class="btn-icon" id="btn-new-chat" title="New Chat">＋</button>
+      </div>
+    </header>
+
+    <!-- Main Views -->
+    <main class="view-container">
+      <!-- 1. Chat View -->
+      <section class="tab-view active" id="tab-chat">
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-welcome" id="chat-welcome">
+            <div class="welcome-logo">⚡</div>
+            <div class="welcome-title">OpenCode Mobile</div>
+            <div class="welcome-subtitle">
+              Your universal AI programming partner for Android. Connected to 25+ AI providers, free model lanes, and local offline backends.
+            </div>
+            <div class="quick-prompts">
+              <div class="quick-chip" data-prompt="Create a responsive Flutter bottom navigation bar with icons">📱 Flutter Nav</div>
+              <div class="quick-chip" data-prompt="Write a Python script to asynchronously fetch and parse JSON data">🐍 Async Python</div>
+              <div class="quick-chip" data-prompt="Implement a fast debounce and throttle utility in TypeScript">⚡ TS Utility</div>
+              <div class="quick-chip" data-prompt="Audit this code for common security bugs and SQL injection">🛡️ Security Audit</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-bar">
+          <div class="persona-pill-bar">
+            <div class="persona-pill active" data-persona="general">🤖 Assistant</div>
+            <div class="persona-pill" data-persona="architect">🏛️ Architect</div>
+            <div class="persona-pill" data-persona="flutter">📱 Mobile / Flutter</div>
+            <div class="persona-pill" data-persona="python">🐍 Python Pro</div>
+            <div class="persona-pill" data-persona="security">🛡️ Security</div>
+            <div class="persona-pill" data-persona="tests">🧪 QA / Tests</div>
+          </div>
+          <div class="input-row">
+            <textarea id="chat-input" class="chat-textarea" placeholder="Ask OpenCode or paste code..." rows="1"></textarea>
+            <button class="send-btn" id="chat-send-btn" title="Send Message">➤</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Code Editor View -->
+      <section class="tab-view" id="tab-editor">
+        <div class="editor-view">
+          <div class="editor-toolbar">
+            <div class="file-tabs" id="file-tabs"></div>
+            <div class="editor-actions">
+              <button class="editor-btn run" id="editor-run-btn" title="Run in Sandbox">▶ Run</button>
+              <button class="editor-btn" id="editor-ai-btn" title="Ask AI about code">✨ Ask AI</button>
+              <button class="editor-btn" id="editor-copy-btn" title="Copy code">📋</button>
+              <button class="editor-btn" id="editor-share-btn" title="Share code">↗</button>
+            </div>
+          </div>
+          <div class="editor-main">
+            <div class="editor-line-numbers" id="editor-line-numbers">1</div>
+            <textarea id="code-editor-textarea" class="code-editor-textarea" spellcheck="false"></textarea>
+          </div>
+          <!-- Sandbox Runner Output Drawer -->
+          <div class="sandbox-drawer hidden" id="sandbox-drawer">
+            <div class="sandbox-header">
+              <span>▶ Live Sandbox Console</span>
+              <button class="btn-icon" id="sandbox-close-btn" style="width:24px; height:24px; color:#fff;">✕</button>
+            </div>
+            <div class="sandbox-console" id="sandbox-console"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Files & Projects View -->
+      <section class="tab-view" id="tab-files">
+        <div class="files-view">
+          <div class="files-header">
+            <div class="section-title">📁 Workspace Files</div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-secondary" id="btn-import-file">📥 Import</button>
+              <button class="btn-secondary" id="btn-new-file">＋ New File</button>
+              <button class="btn-secondary" id="btn-export-files">📤 Export</button>
+              <input type="file" id="file-import-input" style="display:none;">
+            </div>
+          </div>
+          <div class="file-list" id="files-view-list"></div>
+        </div>
+      </section>
+
+      <!-- 4. Settings View -->
+      <section class="tab-view" id="tab-settings">
+        <div class="settings-view">
+          <div class="settings-card">
+            <div class="card-title">🌐 AI Providers & Free Channels</div>
+            <div class="provider-selector-grid" id="providers-grid"></div>
+          </div>
+
+          <div class="settings-card" id="provider-config-form">
+            <!-- Dynamically populated -->
+          </div>
+
+          <div class="settings-card">
+            <div class="card-title">⚙️ Generation Parameters</div>
+            <div class="form-group">
+              <label class="form-label">
+                <span>Temperature (Creativity)</span>
+                <span id="temp-val-label">0.7</span>
+              </label>
+              <input type="range" class="form-range" id="param-temp" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('temp-val-label').innerText = this.value; AppState.temperature = parseFloat(this.value); saveSettings();">
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span>Max Tokens Ceiling</span>
+                <span id="tokens-val-label">4096</span>
+              </label>
+              <input type="range" class="form-range" id="param-tokens" min="256" max="16384" step="256" value="4096" oninput="document.getElementById('tokens-val-label').innerText = this.value; AppState.maxTokens = parseInt(this.value); saveSettings();">
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <div class="card-title">ℹ️ About OpenCode Android</div>
+            <div style="font-size:12.5px; color:var(--text-secondary); line-height: 1.6;">
+              <p><strong>OpenCode Mobile v2.1.0</strong></p>
+              <p>Supports 25+ Commercial & Free AI Providers, Ollama Local offline models, code editor, live JavaScript/HTML sandbox runner, and native Android clipboard & sharing.</p>
+              <p style="margin-top:8px;">GitHub: <a href="https://github.com/Hubg50we/opencode-apk-for-android" style="color:var(--accent-blue)">Hubg50we/opencode-apk-for-android</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="chat">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">Chat</span>
+      </button>
+      <button class="nav-item" data-tab="editor">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">Editor</span>
+      </button>
+      <button class="nav-item" data-tab="files">
+        <span class="nav-icon">📁</span>
+        <span class="nav-label">Files</span>
+      </button>
+      <button class="nav-item" data-tab="settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </button>
+    </nav>
+
+    <!-- Model Picker Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">Select Model</div>
+          <button class="btn-icon" id="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast">Copied to clipboard!</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
