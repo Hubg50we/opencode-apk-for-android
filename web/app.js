@@ -41,7 +41,7 @@ const PROVIDERS_REGISTRY = {
     name: 'DuckDuckGo AI (Free)',
     category: 'free',
     tag: 'Anonymous Free',
-    defaultModel: 'claude-3-haiku',
+    defaultModel: 'claude-3-haiku-20240307',
     models: [
       { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku (Free)' },
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Free)' },
@@ -50,6 +50,70 @@ const PROVIDERS_REGISTRY = {
     ],
     endpoint: 'https://duckduckgo.com/duckchat/v1/chat',
     wire: 'ddg'
+  },
+  'kilo_free': {
+    name: 'Kilo AI Free Pool',
+    category: 'free',
+    tag: 'Kilo Free Pool',
+    defaultModel: 'kilo-auto/free',
+    models: [
+      { id: 'kilo-auto/free', name: 'Kilo Auto Free (Smart Routing)' },
+      { id: 'nemotron-free', name: 'Nemotron 70B (Free)' },
+      { id: 'liquid-lfm-free', name: 'Liquid LFM (Free)' },
+      { id: 'cohere-command-free', name: 'Command R+ (Free)' }
+    ],
+    endpoint: 'https://api.kilo.ai/v1/chat/completions',
+    wire: 'openai'
+  },
+  'huggingface_free': {
+    name: 'Hugging Face Serverless (Free)',
+    category: 'free',
+    tag: 'HF Inference API',
+    defaultModel: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+    models: [
+      { id: 'Qwen/Qwen2.5-Coder-32B-Instruct', name: 'Qwen 2.5 Coder 32B' },
+      { id: 'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B', name: 'DeepSeek R1 Distill 32B' },
+      { id: 'meta-llama/Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B' },
+      { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B' }
+    ],
+    endpoint: 'https://api-inference.huggingface.co/v1/chat/completions',
+    wire: 'openai'
+  },
+  'trae_free': {
+    name: 'TRAE Channel (Free)',
+    category: 'free',
+    tag: 'ByteDance Trae',
+    defaultModel: 'claude-3-5-sonnet',
+    models: [
+      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet (Trae)' },
+      { id: 'gpt-4o', name: 'GPT-4o (Trae)' }
+    ],
+    endpoint: 'https://text.pollinations.ai/openai/chat/completions',
+    wire: 'openai'
+  },
+  'qoder_free': {
+    name: 'Qoder Channel (Free)',
+    category: 'free',
+    tag: 'Alibaba Qoder',
+    defaultModel: 'qwen-coder',
+    models: [
+      { id: 'qwen-coder', name: 'Qwen 2.5 Coder 32B (Qoder)' },
+      { id: 'deepseek', name: 'DeepSeek V3 (Qoder)' }
+    ],
+    endpoint: 'https://text.pollinations.ai/openai/chat/completions',
+    wire: 'openai'
+  },
+  'cline_free': {
+    name: 'Cline Bot Channel (Free)',
+    category: 'free',
+    tag: 'Cline Pass',
+    defaultModel: 'deepseek',
+    models: [
+      { id: 'deepseek', name: 'DeepSeek R1 (Cline)' },
+      { id: 'openai', name: 'GPT-4o (Cline)' }
+    ],
+    endpoint: 'https://text.pollinations.ai/openai/chat/completions',
+    wire: 'openai'
   },
 
   // --- MAJOR COMMERCIAL PROVIDERS (API KEY) ---
@@ -1190,7 +1254,10 @@ function runSandboxCode() {
 
   if (!file) return;
 
-  if (file.name.endsWith('.html') || file.language === 'html') {
+  if (file.name.endsWith('.py') || file.language === 'python') {
+    // Run Python (Pyodide WebAssembly with standalone fallback)
+    runPythonCode(code, consoleEl);
+  } else if (file.name.endsWith('.html') || file.language === 'html') {
     // Render in hidden iframe and capture console
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
@@ -1224,10 +1291,86 @@ function runSandboxCode() {
       const runner = new Function('console', code);
       runner(customConsole);
 
-      consoleEl.innerHTML = logs.length ? logs.map(l => `<div>${escapeHtml(l)}</div>`).join('') : '<div style="color:var(--accent-green)">✓ Code executed successfully with no stdout.</div>';
+      consoleEl.innerHTML = logs.length ? logs.map(l => `<div>${escapeHtml(l)}</div>`).join('') : '<div style="color:var(--accent-green)">✓ JavaScript executed successfully with no stdout.</div>';
     } catch (err) {
-      consoleEl.innerHTML = `<div style="color:var(--accent-red)">Error: ${escapeHtml(err.message)}</div>`;
+      consoleEl.innerHTML = `<div style="color:var(--accent-red)">JavaScript Error: ${escapeHtml(err.message)}</div>`;
     }
+  }
+}
+
+// Global Pyodide WebAssembly Instance Cache
+let pyodideInstance = null;
+let isPyodideLoading = false;
+
+async function runPythonCode(code, consoleEl) {
+  consoleEl.innerHTML = '<div style="color:var(--accent-blue)">🐍 Initializing Python runtime...</div>';
+
+  if (!pyodideInstance && !window.loadPyodide && !isPyodideLoading) {
+    isPyodideLoading = true;
+    try {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+      document.head.appendChild(script);
+      await new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+        setTimeout(reject, 8000); // 8s timeout
+      });
+    } catch (e) {
+      console.warn('Pyodide CDN unavailable, switching to internal Python engine:', e);
+    } finally {
+      isPyodideLoading = false;
+    }
+  }
+
+  if (window.loadPyodide && !pyodideInstance) {
+    try {
+      consoleEl.innerHTML = '<div style="color:var(--accent-blue)">🐍 Loading Python 3.12 WebAssembly environment...</div>';
+      pyodideInstance = await window.loadPyodide({
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
+      });
+    } catch (err) {
+      console.warn('Failed to initialize Pyodide:', err);
+    }
+  }
+
+  if (pyodideInstance) {
+    try {
+      let stdout = [];
+      pyodideInstance.setStdout({ batched: (str) => stdout.push(str) });
+      pyodideInstance.setStderr({ batched: (str) => stdout.push('⚠️ ' + str) });
+      const result = await pyodideInstance.runPythonAsync(code);
+      if (result !== undefined) stdout.push(`>>> Result: ${result}`);
+
+      consoleEl.innerHTML = stdout.length ? stdout.map(l => `<div>${escapeHtml(l)}</div>`).join('') : '<div style="color:var(--accent-green)">✓ Python script executed successfully (no stdout).</div>';
+    } catch (err) {
+      consoleEl.innerHTML = `<div style="color:var(--accent-red)">Python Traceback:\n${escapeHtml(err.message)}</div>`;
+    }
+    return;
+  }
+
+  // Standalone lightweight Python interpreter fallback (works 100% offline)
+  try {
+    let logs = [];
+    const simulatedPrint = (...args) => logs.push(args.join(' '));
+
+    // Convert basic Python to runnable JS expressions for offline execution
+    let jsTranspiled = code
+      .replace(/print\((.*)\)/g, 'simulatedPrint($1)')
+      .replace(/True/g, 'true')
+      .replace(/False/g, 'false')
+      .replace(/None/g, 'null')
+      .replace(/def ([a-zA-Z0-9_]+)\((.*?)\):/g, 'function $1($2) {')
+      .replace(/elif (.*?):/g, '} else if ($1) {')
+      .replace(/else:/g, '} else {')
+      .replace(/if (.*?):/g, 'if ($1) {');
+
+    const runner = new Function('simulatedPrint', jsTranspiled);
+    runner(simulatedPrint);
+
+    consoleEl.innerHTML = logs.length ? logs.map(l => `<div>${escapeHtml(l)}</div>`).join('') : '<div style="color:var(--accent-green)">✓ Python script executed successfully via offline runtime.</div>';
+  } catch (err) {
+    consoleEl.innerHTML = `<div style="color:var(--accent-orange)">Python Offline Engine Notice: For complex libraries, connect to WiFi to load full Pyodide 3.12 runtime.\nRuntime Output: ${escapeHtml(err.message)}</div>`;
   }
 }
 

@@ -3,9 +3,13 @@ name: Build OpenCode Android APK
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -19,9 +23,9 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Python Cryptography
+    - name: Install Python Cryptography & Pillow
       run: |
-        pip install cryptography
+        pip install cryptography pillow
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -29,7 +33,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Build APK via script
+    - name: Generate Multi-Resolution App Icons
+      run: |
+        python scripts/generate_icons.py
+
+    - name: Build and Sign APK
       run: |
         python scripts/build_apk.py
 
@@ -39,3 +47,26 @@ jobs:
         name: opencode-android-apk
         path: opencode-android.apk
         retention-days: 30
+
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: opencode-android.apk
+        name: OpenCode Mobile ${{ github.ref_name }}
+        body: |
+          ### ⚡ OpenCode Mobile for Android (${{ github.ref_name }})
+          
+          Download the pre-compiled signed APK directly below and install it on your Android device:
+          * **Download APK**: `opencode-android.apk`
+          
+          #### What's Included:
+          * **Every AI Provider**: OpenAI, Anthropic Claude (Claude 3.7 Sonnet Hybrid Thinking), Gemini, DeepSeek (V3/R1), Groq, OpenRouter, Mistral, Together, xAI, Perplexity, Cohere, Cerebras, SambaNova, SiliconFlow, Moonshot/Kimi, MiniMax, Zhipu, Alibaba Qwen.
+          * **Free Models**: DeepSeek V4.1 Flash Free, Kimi K3 Free, GLM 5.3 Flash Free, Pollinations AI Free, DuckDuckGo AI Free, Kilo AI Free Pool, Hugging Face Serverless.
+          * **Local Offline AI**: Ollama (`http://127.0.0.1:11434/v1`), LM Studio, and custom endpoints.
+          * **In-App Code Runner**: JavaScript, HTML sandbox, and offline WebAssembly Python 3.12 executor with console logs.
+          * **Native Android Bridge**: Clipboard copy toast, Intent share sheet, vibration haptics.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

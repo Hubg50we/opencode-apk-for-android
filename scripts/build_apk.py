@@ -88,6 +88,21 @@ def build_signed_apk(base_apk_path, output_apk_path, web_dir):
     entries['assets/web/app.js'] = js_content.encode('utf-8')
     entries['assets/www/index.html'] = bundled_html.encode('utf-8')
 
+    icon_path = os.path.join(web_dir, 'icon.png')
+    if os.path.exists(icon_path):
+        with open(icon_path, 'rb') as f:
+            entries['assets/web/icon.png'] = f.read()
+
+    fav_path = os.path.join(web_dir, 'favicon.png')
+    if os.path.exists(fav_path):
+        with open(fav_path, 'rb') as f:
+            entries['assets/web/favicon.png'] = f.read()
+
+    launcher_path = os.path.join(os.path.dirname(web_dir), 'android', 'app', 'src', 'main', 'res', 'drawable', 'ic_launcher.png')
+    if os.path.exists(launcher_path):
+        with open(launcher_path, 'rb') as f:
+            entries['res/drawable/ic_launcher.png'] = f.read()
+
     # Build MANIFEST.MF
     manifest_lines = [
         "Manifest-Version: 1.0",

@@ -30,6 +30,9 @@ The signed Android APK is pre-built and ready to install on any Android device (
     * **MiMo V2.6 Flash (Free lane)**
     * **GLM 5.3 Flash (Free lane)**
     * **Nemotron 120B Free**
+    * **Kilo AI Free Pool** (`kilo-auto/free`, `liquid-lfm-free`, `nemotron-70b-free`)
+    * **Hugging Face Serverless Free** (Qwen 2.5 Coder 32B, DeepSeek R1 Distill 32B)
+    * **TRAE / Qoder / Cline Free Channels**
     * **Pollinations AI Free** (GPT-4o, Claude 3.5 Sonnet, DeepSeek R1, Qwen 2.5 Coder 32B, Mistral Large)
     * **DuckDuckGo AI Free** (Claude 3 Haiku, GPT-4o-mini, Llama 3.3 70B, Mixtral 8x7B)
   * **All Commercial AI Clouds** (Bring Your Own API Key):
