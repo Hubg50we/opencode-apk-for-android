@@ -809,7 +809,26 @@ function showWelcomeScreen() {
   const container = document.getElementById('chat-messages');
   container.innerHTML = `
     <div class="chat-welcome" id="chat-welcome">
-      <div class="welcome-logo">⚡</div>
+      <div class="welcome-logo">
+        <svg class="welcome-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="slashGradW2" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#ec4899" />
+            </linearGradient>
+            <linearGradient id="borderGradW2" x1="0%" y1="100%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="50%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#c084fc" />
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="46" fill="rgba(15, 23, 42, 0.6)" stroke="url(#borderGradW2)" stroke-width="3" />
+          <path d="M 36 34 L 21 50 L 36 66" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M 64 34 L 79 50 L 64 66" stroke="#c084fc" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M 56 26 L 44 74" stroke="url(#slashGradW2)" stroke-width="7.5" stroke-linecap="round" />
+          <circle cx="50" cy="50" r="4.5" fill="#ffffff" />
+        </svg>
+      </div>
       <div class="welcome-title">OpenCode Mobile</div>
       <div class="welcome-subtitle">
         Your on-device universal AI programming partner. Connected directly to 25+ external Cloud AI Providers & Free Cloud Coding Models.

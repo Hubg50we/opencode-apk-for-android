@@ -81,13 +81,19 @@ html, body {
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, #58a6ff, #bc8cff);
+  background: linear-gradient(135deg, #0f172a, #020617);
+  border: 1px solid rgba(56, 189, 248, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.brand-icon .brand-svg {
+  width: 20px;
+  height: 20px;
 }
 
 .brand-name {
@@ -200,15 +206,21 @@ html, body {
 }
 
 .welcome-logo {
-  width: 56px;
-  height: 56px;
+  width: 68px;
+  height: 68px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #1f6feb, #8957e5);
+  background: linear-gradient(135deg, #0d1527, #020617);
+  border: 1.5px solid rgba(56, 189, 248, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  box-shadow: 0 4px 20px rgba(88, 166, 255, 0.3);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.35), 0 0 45px rgba(192, 132, 252, 0.2);
+  overflow: hidden;
+}
+
+.welcome-logo .welcome-svg {
+  width: 52px;
+  height: 52px;
 }
 
 .welcome-title {
