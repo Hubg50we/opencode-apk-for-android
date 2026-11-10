@@ -26,6 +26,8 @@
           <span class="model-pill-badge"></span>
           <span class="model-pill-text" id="model-pill-text">OpenCode AI</span>
         </button>
+        <button class="btn-icon" id="btn-theme-toggle" title="Switch Theme">🎨</button>
+        <button class="btn-icon" id="btn-github-sync" title="GitHub Sync">🐙</button>
         <button class="btn-icon" id="btn-split-toggle" title="Toggle Split Screen (Tablets/Pads)">◫</button>
         <button class="btn-icon" id="btn-new-chat" title="New Chat">＋</button>
       </div>
@@ -99,11 +101,12 @@
         <div class="files-view">
           <div class="files-header">
             <div class="section-title">📁 Workspace Files</div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <button class="btn-secondary" id="btn-import-file">📥 Import</button>
               <button class="btn-secondary" id="btn-new-file">＋ New File</button>
-              <button class="btn-secondary" id="btn-export-files">📤 Export</button>
-              <input type="file" id="file-import-input" style="display:none;">
+              <button class="btn-secondary" id="btn-export-zip">📦 Export ZIP</button>
+              <button class="btn-secondary" id="btn-github-modal-open">🐙 GitHub</button>
+              <input type="file" id="file-import-input" style="display:none;" multiple>
             </div>
           </div>
           <div class="file-list" id="files-view-list"></div>
@@ -141,10 +144,15 @@
           </div>
 
           <div class="settings-card">
+            <div class="card-title">🎨 Interface & Editor Themes</div>
+            <div class="theme-selector-grid" id="themes-grid"></div>
+          </div>
+
+          <div class="settings-card">
             <div class="card-title">ℹ️ About OpenCode Android</div>
             <div style="font-size:12.5px; color:var(--text-secondary); line-height: 1.6;">
-              <p><strong>OpenCode Mobile v2.2.2</strong></p>
-              <p>On-device AI coding studio connected directly to 25+ external Cloud AI Providers (OpenAI, Claude, Gemini, DeepSeek, Groq, OpenRouter, Mistral) & 100% Free Cloud Models (Pollinations, OpenCode Zen, DuckDuckGo, Hugging Face Serverless, Kilo AI). Zero local model weight requirements.</p>
+              <p><strong>OpenCode Mobile v2.3.0 (Expansion Pack)</strong></p>
+              <p>On-device AI coding studio connected directly to 25+ external Cloud AI Providers & Free Cloud Models. Includes in-browser Python WebAssembly engine, GitHub Direct Sync (Clone, Commit, Push), Custom Themes Engine, and Project ZIP Export. Zero local model weight requirements.</p>
               <p style="margin-top:8px;">GitHub: <a href="https://github.com/Hubg50we/opencode-apk-for-android" style="color:var(--accent-blue)">Hubg50we/opencode-apk-for-android</a></p>
             </div>
           </div>
@@ -180,6 +188,89 @@
           <button class="btn-icon" id="modal-close-btn">✕</button>
         </div>
         <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- GitHub Direct Sync Modal -->
+    <div class="modal-overlay" id="github-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">🐙 GitHub Direct Sync</div>
+          <button class="btn-icon" id="github-modal-close-btn">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="github-tabs">
+            <button class="github-tab-btn active" id="gh-tab-clone">📥 Clone / Pull</button>
+            <button class="github-tab-btn" id="gh-tab-push">📤 Push Changes</button>
+            <button class="github-tab-btn" id="gh-tab-gist">📋 Gist Share</button>
+          </div>
+
+          <!-- Tab 1: Clone / Pull -->
+          <div id="gh-view-clone">
+            <div class="form-group">
+              <label class="form-label">Repository (owner/repo or GitHub URL)</label>
+              <input type="text" id="gh-clone-repo" class="form-input" placeholder="e.g. Hubg50we/opencode-apk-for-android">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Branch (default: main)</label>
+              <input type="text" id="gh-clone-branch" class="form-input" placeholder="main" value="main">
+            </div>
+            <div class="form-group">
+              <label class="form-label">GitHub Token (Optional for public repositories)</label>
+              <input type="password" id="gh-clone-token" class="form-input" placeholder="ghp_... (needed for private repos)">
+            </div>
+            <button class="btn-primary" id="gh-btn-execute-clone" style="margin-top:10px;">
+              📥 Import Repository Files
+            </button>
+          </div>
+
+          <!-- Tab 2: Push -->
+          <div id="gh-view-push" class="hidden">
+            <div class="form-group">
+              <label class="form-label">Target Repository (owner/repo)</label>
+              <input type="text" id="gh-push-repo" class="form-input" placeholder="e.g. yourname/my-project">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Branch</label>
+              <input type="text" id="gh-push-branch" class="form-input" placeholder="main" value="main">
+            </div>
+            <div class="form-group">
+              <label class="form-label">GitHub Personal Access Token (repo scope)</label>
+              <input type="password" id="gh-push-token" class="form-input" placeholder="ghp_xxxxxxxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Commit Message</label>
+              <input type="text" id="gh-push-message" class="form-input" placeholder="Update from OpenCode Mobile" value="Update from OpenCode Mobile IDE">
+            </div>
+            <button class="btn-primary" id="gh-btn-execute-push" style="margin-top:10px;">
+              🚀 Commit & Push to GitHub
+            </button>
+          </div>
+
+          <!-- Tab 3: Gist -->
+          <div id="gh-view-gist" class="hidden">
+            <div class="form-group">
+              <label class="form-label">Gist Description</label>
+              <input type="text" id="gh-gist-desc" class="form-input" placeholder="OpenCode Mobile Snippet" value="Created with OpenCode Mobile">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Export Scope</label>
+              <select id="gh-gist-scope" class="form-input" style="background:var(--bg-input);">
+                <option value="active">Active File Only</option>
+                <option value="all">All Workspace Files</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">GitHub Token (Optional - leave blank for public anonymous)</label>
+              <input type="password" id="gh-gist-token" class="form-input" placeholder="ghp_... (optional)">
+            </div>
+            <button class="btn-primary" id="gh-btn-execute-gist" style="margin-top:10px;">
+              ✨ Create & Share Gist
+            </button>
+          </div>
+
+          <div id="gh-status-log" style="display:none; margin-top:12px;"></div>
+        </div>
       </div>
     </div>
 

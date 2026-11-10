@@ -92,6 +92,29 @@ The signed Android APK is pre-built and ready to install on any Android device (
     * Installable standalone on **iOS / iPadOS** (Safari "Add to Home Screen"), **macOS**, **Windows**, **Linux**, and **ChromeOS** / **Samsung DeX**.
     * Full offline Service Worker caching for instant offline boot.
 
+* **🐍 In-Browser Python Execution Engine (Pyodide / WebAssembly)**:
+  * Full Python 3.12 WebAssembly environment running client-side with zero server dependencies.
+  * Captures `sys.stdout` and `sys.stderr` in real time with interactive execution results.
+  * Instant offline-first fallback runner for basic script execution without WiFi.
+
+* **🐙 GitHub Direct Sync (Clone, Commit & Push)**:
+  * **Clone / Pull**: Import any public or private GitHub repository directly into workspace files via GitHub REST API v3.
+  * **Commit & Push**: Push workspace modifications directly to GitHub branches with Git tree and commit hashing using Personal Access Tokens (PAT).
+  * **Instant Gist Share**: Export individual code files or full workspaces as shareable GitHub Gists in one tap.
+
+* **🎨 Multi-Theme Customization Engine**:
+  * **Cyber Dark** (Default slate with cyan/blue accents)
+  * **OLED Pure Black** (Pure `#000000` AMOLED battery saving mode)
+  * **Solarized Dark** (Ethan Schoonover classic teal & amber palette)
+  * **Neon Cyberpunk** (Vibrant synthwave deep violet & hot pink)
+  * **Monokai Pro** (Iconic warm charcoal with vivid pastel highlights)
+  * **Forest Night** (Calming deep emerald and mint green)
+  * Header quick-toggle (`🎨`) and Settings preview cards with instant switching and local persistence.
+
+* **📦 Project ZIP Export & Archive Manager**:
+  * One-tap export of the entire workspace as standard `.zip` archive using pure client-side PKZIP generator.
+  * Import single files or entire `.zip` project archives with streaming Deflate decompression.
+
 * **⚡ Native Android Bridge**:
   * Native clipboard copying with Android toast notifications.
   * Native Android Intent share sheet.

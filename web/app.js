@@ -434,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFileContent();
   updateProviderModelPill();
   renderProvidersGrid();
+  renderThemesGrid();
   checkAndroidBridge();
   initResponsiveDeviceMode();
   registerPwaServiceWorker();
@@ -484,6 +485,8 @@ function loadStoredSettings() {
       if (data.maxTokens !== undefined) AppState.maxTokens = parseInt(data.maxTokens);
       if (data.customEndpoints) AppState.customEndpoints = data.customEndpoints;
     }
+    const savedTheme = localStorage.getItem('opencode_theme') || 'theme-cyber';
+    applyTheme(savedTheme, false);
   } catch (e) {
     console.error('Settings load error:', e);
   }
@@ -678,15 +681,34 @@ function setupEventListeners() {
     document.getElementById('editor-line-numbers').scrollTop = codeArea.scrollTop;
   });
 
-  // File import button
+  // File operations & GitHub Sync
   const fileInput = document.getElementById('file-import-input');
-  document.getElementById('btn-import-file').addEventListener('click', () => {
-    fileInput.click();
+  if (fileInput) {
+    document.getElementById('btn-import-file')?.addEventListener('click', () => {
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', handleFileImport);
+  }
+  document.getElementById('btn-new-file')?.addEventListener('click', promptNewFile);
+  document.getElementById('btn-export-files')?.addEventListener('click', exportAllFiles);
+  document.getElementById('btn-export-zip')?.addEventListener('click', exportWorkspaceAsZip);
+
+  // Theme & GitHub triggers
+  document.getElementById('btn-theme-toggle')?.addEventListener('click', cycleTheme);
+  document.getElementById('btn-github-sync')?.addEventListener('click', openGitHubModal);
+  document.getElementById('btn-github-modal-open')?.addEventListener('click', openGitHubModal);
+  document.getElementById('github-modal-close-btn')?.addEventListener('click', closeGitHubModal);
+  document.getElementById('github-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'github-modal') closeGitHubModal();
   });
 
-  fileInput.addEventListener('change', handleFileImport);
-  document.getElementById('btn-new-file').addEventListener('click', promptNewFile);
-  document.getElementById('btn-export-files').addEventListener('click', exportAllFiles);
+  document.getElementById('gh-tab-clone')?.addEventListener('click', () => switchGitHubTab('clone'));
+  document.getElementById('gh-tab-push')?.addEventListener('click', () => switchGitHubTab('push'));
+  document.getElementById('gh-tab-gist')?.addEventListener('click', () => switchGitHubTab('gist'));
+
+  document.getElementById('gh-btn-execute-clone')?.addEventListener('click', executeGitHubClone);
+  document.getElementById('gh-btn-execute-push')?.addEventListener('click', executeGitHubPush);
+  document.getElementById('gh-btn-execute-gist')?.addEventListener('click', executeGitHubGist);
 
   // Clear chat
   document.getElementById('btn-new-chat').addEventListener('click', () => {
@@ -1580,27 +1602,35 @@ window.deleteFile = function(idx) {
 };
 
 function handleFileImport(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    AppState.files.push({
-      name: file.name,
-      language: file.name.split('.').pop(),
-      content: event.target.result
-    });
-    AppState.activeFileIndex = AppState.files.length - 1;
-    renderFilesTabs();
-    renderFilesList();
-    switchTab('editor');
-    showToast(`Imported ${file.name}`);
-  };
-  reader.readAsText(file);
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    if (file.name.endsWith('.zip')) {
+      unpackZipArchive(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        AppState.files.push({
+          name: file.name,
+          language: file.name.split('.').pop() || 'txt',
+          content: event.target.result
+        });
+        AppState.activeFileIndex = AppState.files.length - 1;
+        renderFilesTabs();
+        renderFilesList();
+        renderFileContent();
+        switchTab('editor');
+        showToast(`Imported ${file.name}`);
+      };
+      reader.readAsText(file);
+    }
+  });
+  e.target.value = '';
 }
 
 function exportAllFiles() {
-  const zipContent = JSON.stringify(AppState.files, null, 2);
-  triggerNativeShare('OpenCode_Workspace_Export.json', zipContent);
+  exportWorkspaceAsZip();
 }
 
 // --- SETTINGS VIEW ---
@@ -1634,6 +1664,7 @@ window.selectProviderSetting = function(pId) {
 function renderSettingsView() {
   renderProvidersGrid();
   renderProviderConfigForm();
+  renderThemesGrid();
 }
 
 function renderProviderConfigForm() {
@@ -1744,3 +1775,566 @@ window.testConnection = async function(pId) {
     showToast(`❌ Error: ${err.message}`);
   }
 };
+
+// --- THEMES ENGINE ---
+const THEMES_REGISTRY = {
+  'theme-cyber': {
+    name: 'Cyber Dark',
+    desc: 'Default sleek slate & cyan accents',
+    bgColor: '#0d1117',
+    dots: ['#0d1117', '#58a6ff', '#bc8cff']
+  },
+  'theme-oled': {
+    name: 'OLED Pure Black',
+    desc: 'Deep 0% black for AMOLED battery saving',
+    bgColor: '#000000',
+    dots: ['#000000', '#3b82f6', '#10b981']
+  },
+  'theme-solarized': {
+    name: 'Solarized Dark',
+    desc: 'Ethan Schoonover classic teal palette',
+    bgColor: '#002b36',
+    dots: ['#002b36', '#268bd2', '#859900']
+  },
+  'theme-neon': {
+    name: 'Neon Cyberpunk',
+    desc: 'Electric synthwave purple & hot pink',
+    bgColor: '#0d041a',
+    dots: ['#0d041a', '#00f0ff', '#ff007f']
+  },
+  'theme-monokai': {
+    name: 'Monokai Pro',
+    desc: 'Iconic warm charcoal with vivid colors',
+    bgColor: '#2d2a2e',
+    dots: ['#2d2a2e', '#ffd866', '#78dce8']
+  },
+  'theme-forest': {
+    name: 'Forest Night',
+    desc: 'Organic deep emerald and calming mint',
+    bgColor: '#0a1612',
+    dots: ['#0a1612', '#3fb950', '#7ee787']
+  }
+};
+
+let currentThemeId = 'theme-cyber';
+
+window.applyTheme = function(themeId, notify = true) {
+  if (!THEMES_REGISTRY[themeId]) themeId = 'theme-cyber';
+  currentThemeId = themeId;
+  document.body.className = (themeId === 'theme-cyber') ? '' : themeId;
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', THEMES_REGISTRY[themeId].bgColor);
+
+  localStorage.setItem('opencode_theme', themeId);
+  renderThemesGrid();
+  if (notify) {
+    showToast(`🎨 Theme: ${THEMES_REGISTRY[themeId].name}`);
+    triggerHaptic(15);
+  }
+};
+
+function cycleTheme() {
+  const keys = Object.keys(THEMES_REGISTRY);
+  const nextIdx = (keys.indexOf(currentThemeId) + 1) % keys.length;
+  applyTheme(keys[nextIdx], true);
+}
+
+function renderThemesGrid() {
+  const grid = document.getElementById('themes-grid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(THEMES_REGISTRY).map(([id, t]) => `
+    <div class="theme-card ${currentThemeId === id ? 'active' : ''}" onclick="applyTheme('${id}')">
+      <div class="theme-card-colors">
+        ${t.dots.map(c => `<div class="theme-dot" style="background:${c}"></div>`).join('')}
+      </div>
+      <div class="theme-card-name">${t.name}</div>
+      <div class="theme-card-desc">${t.desc}</div>
+    </div>
+  `).join('');
+}
+
+// --- PROJECT ZIP EXPORT & ARCHIVE ENGINE ---
+function createZipArchive(files) {
+  function crc32(str) {
+    let table = crc32.table;
+    if (!table) {
+      table = crc32.table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) {
+          c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[i] = c >>> 0;
+      }
+    }
+    const bytes = new TextEncoder().encode(str);
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) {
+      crc = (crc >>> 8) ^ table[(crc ^ bytes[i]) & 0xff];
+    }
+    return ((crc ^ 0xffffffff) >>> 0);
+  }
+
+  const fileEntries = [];
+  let offset = 0;
+  const encoder = new TextEncoder();
+
+  for (const f of files) {
+    const nameBytes = encoder.encode(f.name);
+    const contentBytes = encoder.encode(f.content || '');
+    const checksum = crc32(f.content || '');
+    const size = contentBytes.length;
+
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const view = new DataView(localHeader.buffer);
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(6, 0, true);
+    view.setUint16(8, 0, true);
+    view.setUint16(10, 0, true);
+    view.setUint16(12, 0, true);
+    view.setUint32(14, checksum, true);
+    view.setUint32(18, size, true);
+    view.setUint32(22, size, true);
+    view.setUint16(26, nameBytes.length, true);
+    view.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+
+    fileEntries.push({
+      nameBytes,
+      contentBytes,
+      checksum,
+      size,
+      offset,
+      localHeader
+    });
+
+    offset += localHeader.length + contentBytes.length;
+  }
+
+  const centralDirEntries = [];
+  let centralDirSize = 0;
+  for (const entry of fileEntries) {
+    const cdHeader = new Uint8Array(46 + entry.nameBytes.length);
+    const view = new DataView(cdHeader.buffer);
+    view.setUint32(0, 0x02014b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(6, 20, true);
+    view.setUint16(8, 0, true);
+    view.setUint16(10, 0, true);
+    view.setUint16(12, 0, true);
+    view.setUint32(16, entry.checksum, true);
+    view.setUint32(20, entry.size, true);
+    view.setUint32(24, entry.size, true);
+    view.setUint16(28, entry.nameBytes.length, true);
+    view.setUint16(30, 0, true);
+    view.setUint16(32, 0, true);
+    view.setUint16(34, 0, true);
+    view.setUint16(36, 0, true);
+    view.setUint32(38, 0, true);
+    view.setUint32(42, entry.offset, true);
+    cdHeader.set(entry.nameBytes, 46);
+
+    centralDirEntries.push(cdHeader);
+    centralDirSize += cdHeader.length;
+  }
+
+  const eocd = new Uint8Array(22);
+  const eocdView = new DataView(eocd.buffer);
+  eocdView.setUint32(0, 0x06054b50, true);
+  eocdView.setUint16(4, 0, true);
+  eocdView.setUint16(6, 0, true);
+  eocdView.setUint16(8, fileEntries.length, true);
+  eocdView.setUint16(10, fileEntries.length, true);
+  eocdView.setUint32(12, centralDirSize, true);
+  eocdView.setUint32(16, offset, true);
+  eocdView.setUint16(20, 0, true);
+
+  const blobParts = [];
+  for (const entry of fileEntries) {
+    blobParts.push(entry.localHeader);
+    blobParts.push(entry.contentBytes);
+  }
+  for (const cd of centralDirEntries) {
+    blobParts.push(cd);
+  }
+  blobParts.push(eocd);
+
+  return new Blob(blobParts, { type: 'application/zip' });
+}
+
+function exportWorkspaceAsZip() {
+  triggerHaptic(25);
+  try {
+    const zipBlob = createZipArchive(AppState.files);
+    const filename = `OpenCode_Project_${new Date().toISOString().slice(0, 10)}.zip`;
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
+    showToast(`📦 Exported ${filename} (${AppState.files.length} files)`);
+  } catch (err) {
+    showToast(`Export error: ${err.message}`);
+  }
+}
+
+async function unpackZipArchive(file) {
+  try {
+    showToast('Extracting ZIP archive...');
+    const buf = await file.arrayBuffer();
+    const view = new DataView(buf);
+    const uint8 = new Uint8Array(buf);
+    let offset = 0;
+    const extracted = [];
+
+    while (offset < buf.byteLength - 30) {
+      const sig = view.getUint32(offset, true);
+      if (sig !== 0x04034b50) break;
+
+      const method = view.getUint16(offset + 8, true);
+      const compSize = view.getUint32(offset + 18, true);
+      const uncompSize = view.getUint32(offset + 22, true);
+      const nameLen = view.getUint16(offset + 26, true);
+      const extraLen = view.getUint16(offset + 28, true);
+
+      const nameBytes = uint8.slice(offset + 30, offset + 30 + nameLen);
+      const name = new TextDecoder().decode(nameBytes);
+      const dataStart = offset + 30 + nameLen + extraLen;
+      const dataBytes = uint8.slice(dataStart, dataStart + compSize);
+
+      if (!name.endsWith('/') && !name.includes('__MACOSX')) {
+        let content = '';
+        if (method === 0) {
+          content = new TextDecoder().decode(dataBytes);
+        } else if (method === 8 && typeof DecompressionStream !== 'undefined') {
+          try {
+            const ds = new DecompressionStream('deflate-raw');
+            const writer = ds.writable.getWriter();
+            writer.write(dataBytes);
+            writer.close();
+            const reader = ds.readable.getReader();
+            const chunks = [];
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+            const total = chunks.reduce((acc, c) => acc + c.length, 0);
+            const merged = new Uint8Array(total);
+            let p = 0;
+            for (const c of chunks) { merged.set(c, p); p += c.length; }
+            content = new TextDecoder().decode(merged);
+          } catch (decompressErr) {
+            content = new TextDecoder().decode(dataBytes);
+          }
+        }
+        extracted.push({
+          name: name.split('/').pop() || name,
+          language: name.split('.').pop() || 'txt',
+          content
+        });
+      }
+
+      offset = dataStart + compSize;
+    }
+
+    if (extracted.length > 0) {
+      extracted.forEach(ef => AppState.files.push(ef));
+      AppState.activeFileIndex = AppState.files.length - 1;
+      renderFilesTabs();
+      renderFilesList();
+      renderFileContent();
+      switchTab('editor');
+      showToast(`✓ Extracted ${extracted.length} files from ${file.name}`);
+    } else {
+      showToast('Could not find extractable files in ZIP.');
+    }
+  } catch (err) {
+    showToast(`ZIP unpack error: ${err.message}`);
+  }
+}
+
+// --- GITHUB DIRECT SYNC ENGINE ---
+function openGitHubModal() {
+  triggerHaptic(20);
+  const modal = document.getElementById('github-modal');
+  modal.classList.add('active');
+  const savedToken = localStorage.getItem('opencode_github_token');
+  if (savedToken) {
+    const cloneToken = document.getElementById('gh-clone-token');
+    const pushToken = document.getElementById('gh-push-token');
+    const gistToken = document.getElementById('gh-gist-token');
+    if (cloneToken && !cloneToken.value) cloneToken.value = savedToken;
+    if (pushToken && !pushToken.value) pushToken.value = savedToken;
+    if (gistToken && !gistToken.value) gistToken.value = savedToken;
+  }
+}
+
+function closeGitHubModal() {
+  document.getElementById('github-modal').classList.remove('active');
+}
+
+function switchGitHubTab(tabName) {
+  triggerHaptic(15);
+  ['clone', 'push', 'gist'].forEach(t => {
+    const btn = document.getElementById(`gh-tab-${t}`);
+    const view = document.getElementById(`gh-view-${t}`);
+    if (btn) btn.classList.toggle('active', t === tabName);
+    if (view) view.classList.toggle('hidden', t !== tabName);
+  });
+}
+
+function logGitHubStatus(msg, isError = false) {
+  const log = document.getElementById('gh-status-log');
+  if (!log) return;
+  log.style.display = 'block';
+  const line = document.createElement('div');
+  line.style.color = isError ? 'var(--accent-red)' : 'var(--accent-blue)';
+  line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function executeGitHubClone() {
+  let repoInput = document.getElementById('gh-clone-repo').value.trim();
+  const branch = document.getElementById('gh-clone-branch').value.trim() || 'main';
+  const token = document.getElementById('gh-clone-token').value.trim();
+
+  if (!repoInput) {
+    showToast('Please enter a repository (owner/repo)');
+    return;
+  }
+
+  repoInput = repoInput.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
+  const parts = repoInput.split('/');
+  if (parts.length < 2) {
+    showToast('Invalid format. Use owner/repo (e.g. Hubg50we/opencode-apk-for-android)');
+    return;
+  }
+  const owner = parts[0];
+  const repo = parts[1];
+
+  if (token) localStorage.setItem('opencode_github_token', token);
+
+  const log = document.getElementById('gh-status-log');
+  log.innerHTML = '';
+  logGitHubStatus(`Connecting to GitHub: ${owner}/${repo} (branch: ${branch})...`);
+
+  const headers = { 'Accept': 'application/vnd.github.v3+json' };
+  if (token) headers['Authorization'] = `token ${token}`;
+
+  try {
+    const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, { headers });
+    if (!treeRes.ok) {
+      if (treeRes.status === 404) throw new Error('Repository or branch not found. For private repos, provide a Personal Access Token.');
+      throw new Error(`GitHub API error ${treeRes.status}: ${treeRes.statusText}`);
+    }
+
+    const treeData = await treeRes.json();
+    if (!treeData.tree || !Array.isArray(treeData.tree)) {
+      throw new Error('No files found in repository tree.');
+    }
+
+    const codeExts = ['.js', '.ts', '.py', '.html', '.css', '.json', '.md', '.dart', '.rs', '.java', '.kt', '.go', '.c', '.cpp', '.h', '.sh', '.yaml', '.yml', '.xml', '.txt', '.sql'];
+    const textFiles = treeData.tree.filter(item => {
+      if (item.type !== 'blob') return false;
+      if (item.size && item.size > 250000) return false;
+      if (item.path.includes('.git/') || item.path.includes('node_modules/') || item.path.includes('.gradle/')) return false;
+      const lower = item.path.toLowerCase();
+      return codeExts.some(ext => lower.endsWith(ext));
+    }).slice(0, 40);
+
+    logGitHubStatus(`Found ${textFiles.length} code files. Fetching contents...`);
+
+    const importedFiles = [];
+    for (let i = 0; i < textFiles.length; i++) {
+      const item = textFiles[i];
+      try {
+        const rawRes = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${item.path}`, {
+          headers: token ? { 'Authorization': `token ${token}` } : {}
+        });
+        if (rawRes.ok) {
+          const content = await rawRes.text();
+          const ext = item.path.split('.').pop() || 'txt';
+          importedFiles.push({
+            name: item.path,
+            language: ext,
+            content
+          });
+          logGitHubStatus(`[${i + 1}/${textFiles.length}] ✓ ${item.path}`);
+        }
+      } catch (fErr) {
+        logGitHubStatus(`Failed to fetch ${item.path}: ${fErr.message}`, true);
+      }
+    }
+
+    if (importedFiles.length > 0) {
+      AppState.files = importedFiles;
+      AppState.activeFileIndex = 0;
+      renderFilesTabs();
+      renderFilesList();
+      renderFileContent();
+      closeGitHubModal();
+      switchTab('editor');
+      showToast(`✓ Cloned ${importedFiles.length} files from ${repo}!`);
+    } else {
+      throw new Error('Could not download file contents from repository.');
+    }
+  } catch (err) {
+    logGitHubStatus(`Error: ${err.message}`, true);
+    showToast(`Clone Failed: ${err.message}`);
+  }
+}
+
+async function executeGitHubPush() {
+  let repoInput = document.getElementById('gh-push-repo').value.trim();
+  const branch = document.getElementById('gh-push-branch').value.trim() || 'main';
+  const token = document.getElementById('gh-push-token').value.trim();
+  const message = document.getElementById('gh-push-message').value.trim() || 'Update from OpenCode Mobile';
+
+  if (!token) {
+    showToast('Personal Access Token is required to push to GitHub.');
+    return;
+  }
+  if (!repoInput) {
+    showToast('Please specify target repository (owner/repo).');
+    return;
+  }
+
+  repoInput = repoInput.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
+  const parts = repoInput.split('/');
+  if (parts.length < 2) {
+    showToast('Invalid format. Use owner/repo');
+    return;
+  }
+  const owner = parts[0];
+  const repo = parts[1];
+
+  localStorage.setItem('opencode_github_token', token);
+
+  const log = document.getElementById('gh-status-log');
+  log.innerHTML = '';
+  logGitHubStatus(`Preparing push to ${owner}/${repo}:${branch}...`);
+
+  const headers = {
+    'Accept': 'application/vnd.github.v3+json',
+    'Authorization': `token ${token}`,
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    logGitHubStatus('Checking branch reference...');
+    const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${branch}`, { headers });
+    if (!refRes.ok) throw new Error(`Could not get branch ref (${refRes.status}). Verify token repo scope and branch name.`);
+    const refData = await refRes.json();
+    const latestCommitSha = refData.object.sha;
+
+    const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, { headers });
+    const commitData = await commitRes.json();
+    const baseTreeSha = commitData.tree.sha;
+
+    logGitHubStatus(`Creating Git tree with ${AppState.files.length} files...`);
+    const treeItems = AppState.files.map(f => ({
+      path: f.name,
+      mode: '100644',
+      type: 'blob',
+      content: f.content
+    }));
+
+    const createTreeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        base_tree: baseTreeSha,
+        tree: treeItems
+      })
+    });
+    if (!createTreeRes.ok) throw new Error(`Failed to create Git tree (${createTreeRes.status})`);
+    const newTreeData = await createTreeRes.json();
+
+    logGitHubStatus(`Creating commit: "${message}"...`);
+    const newCommitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        message,
+        tree: newTreeData.sha,
+        parents: [latestCommitSha]
+      })
+    });
+    if (!newCommitRes.ok) throw new Error(`Failed to create commit (${newCommitRes.status})`);
+    const newCommitData = await newCommitRes.json();
+
+    logGitHubStatus('Updating branch reference to new commit...');
+    const updateRefRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        sha: newCommitData.sha,
+        force: false
+      })
+    });
+    if (!updateRefRes.ok) throw new Error(`Failed to update ref (${updateRefRes.status})`);
+
+    logGitHubStatus(`✓ Successfully pushed commit ${newCommitData.sha.substring(0, 7)} to ${branch}!`);
+    showToast(`🚀 Successfully pushed to GitHub (${branch})!`);
+  } catch (err) {
+    logGitHubStatus(`Push failed: ${err.message}`, true);
+    showToast(`Push error: ${err.message}`);
+  }
+}
+
+async function executeGitHubGist() {
+  const desc = document.getElementById('gh-gist-desc').value.trim() || 'OpenCode Mobile Snippet';
+  const scope = document.getElementById('gh-gist-scope').value;
+  const token = document.getElementById('gh-gist-token').value.trim();
+
+  const filesPayload = {};
+  if (scope === 'active') {
+    const file = AppState.files[AppState.activeFileIndex] || { name: 'snippet.js', content: '' };
+    filesPayload[file.name] = { content: file.content || '// empty' };
+  } else {
+    AppState.files.forEach(f => {
+      filesPayload[f.name] = { content: f.content || '// empty' };
+    });
+  }
+
+  const log = document.getElementById('gh-status-log');
+  log.innerHTML = '';
+  logGitHubStatus('Creating Gist on GitHub...');
+
+  const headers = {
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+  if (token) headers['Authorization'] = `token ${token}`;
+
+  try {
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        description: desc,
+        public: true,
+        files: filesPayload
+      })
+    });
+
+    if (!res.ok) throw new Error(`Gist creation failed (${res.status})`);
+    const data = await res.json();
+    logGitHubStatus(`✓ Gist created: ${data.html_url}`);
+    triggerNativeCopy(data.html_url);
+    showToast(`✓ Gist created & URL copied to clipboard!`);
+  } catch (err) {
+    logGitHubStatus(`Gist failed: ${err.message}`, true);
+    showToast(`Gist error: ${err.message}`);
+  }
+}
+

@@ -1024,3 +1024,186 @@ html, body {
     width: 60%;
   }
 }
+
+/* --- MULTI-THEME ENGINE --- */
+body.theme-oled {
+  --bg-primary: #000000;
+  --bg-secondary: #080808;
+  --bg-tertiary: #121212;
+  --bg-input: #040404;
+  --border-color: #1f1f1f;
+  --border-focus: #3b82f6;
+  --text-primary: #ffffff;
+  --text-secondary: #9e9e9e;
+  --text-muted: #555555;
+  --accent-blue: #3b82f6;
+  --accent-green: #10b981;
+  --accent-purple: #8b5cf6;
+  --accent-orange: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-cyan: #06b6d4;
+}
+
+body.theme-solarized {
+  --bg-primary: #002b36;
+  --bg-secondary: #073642;
+  --bg-tertiary: #0b4352;
+  --bg-input: #00212b;
+  --border-color: #0f5263;
+  --border-focus: #268bd2;
+  --text-primary: #93a1a1;
+  --text-secondary: #586e75;
+  --text-muted: #657b83;
+  --accent-blue: #268bd2;
+  --accent-green: #859900;
+  --accent-purple: #6c71c4;
+  --accent-orange: #cb4b16;
+  --accent-red: #dc322f;
+  --accent-cyan: #2aa198;
+}
+
+body.theme-neon {
+  --bg-primary: #0d041a;
+  --bg-secondary: #17092b;
+  --bg-tertiary: #230d42;
+  --bg-input: #080212;
+  --border-color: #40167a;
+  --border-focus: #ff007f;
+  --text-primary: #f6ecff;
+  --text-secondary: #be9ddb;
+  --text-muted: #7e579c;
+  --accent-blue: #00f0ff;
+  --accent-green: #00ff73;
+  --accent-purple: #b339ff;
+  --accent-orange: #ff007f;
+  --accent-red: #ff2a6d;
+  --accent-cyan: #00f0ff;
+}
+
+body.theme-monokai {
+  --bg-primary: #2d2a2e;
+  --bg-secondary: #221f22;
+  --bg-tertiary: #3a373b;
+  --bg-input: #1b191b;
+  --border-color: #454346;
+  --border-focus: #ffd866;
+  --text-primary: #fcfcfa;
+  --text-secondary: #939293;
+  --text-muted: #727072;
+  --accent-blue: #78dce8;
+  --accent-green: #a9dc76;
+  --accent-purple: #ab9df2;
+  --accent-orange: #fc9867;
+  --accent-red: #ff6188;
+  --accent-cyan: #78dce8;
+}
+
+body.theme-forest {
+  --bg-primary: #0a1612;
+  --bg-secondary: #12241e;
+  --bg-tertiary: #1a332a;
+  --bg-input: #060e0c;
+  --border-color: #24473b;
+  --border-focus: #3fb950;
+  --text-primary: #e6edf3;
+  --text-secondary: #7ee787;
+  --text-muted: #4e8067;
+  --accent-blue: #56d364;
+  --accent-green: #3fb950;
+  --accent-purple: #7ee787;
+  --accent-orange: #e3b341;
+  --accent-red: #f85149;
+  --accent-cyan: #56d364;
+}
+
+/* Theme selector styling */
+.theme-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.theme-card {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.theme-card.active {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
+}
+
+.theme-card-colors {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.theme-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.theme-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.theme-card-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* GitHub Direct Sync Modal */
+.github-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.github-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.github-tab-btn.active {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+}
+
+#gh-status-log {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
