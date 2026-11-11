@@ -690,7 +690,6 @@ function setupEventListeners() {
     fileInput.addEventListener('change', handleFileImport);
   }
   document.getElementById('btn-new-file')?.addEventListener('click', promptNewFile);
-  document.getElementById('btn-export-files')?.addEventListener('click', exportAllFiles);
   document.getElementById('btn-export-zip')?.addEventListener('click', exportWorkspaceAsZip);
 
   // Theme & GitHub triggers
