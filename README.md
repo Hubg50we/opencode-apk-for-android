@@ -115,6 +115,19 @@ The signed Android APK is pre-built and ready to install on any Android device (
   * One-tap export of the entire workspace as standard `.zip` archive using pure client-side PKZIP generator.
   * Import single files or entire `.zip` project archives with streaming Deflate decompression.
 
+* **💻 Virtual Bash Terminal Shell (`sh` / `bash` Emulator)**:
+  * Full interactive in-memory command shell running directly over workspace files.
+  * Supports Unix utilities: `ls`, `cat`, `touch`, `rm`, `echo`, `grep`, `wc`, `pwd`, `whoami`, `uname`, `curl`.
+  * Direct script execution: `python <file.py>` (via WASM runtime) and `node <file.js>` (via JS sandbox).
+  * Simulated Git tools: `git status`, `git log`, `git diff`.
+  * Touchscreen-friendly quick command chips for mobile developers.
+
+* **⚖️ Visual Code Diff Viewer (Side-by-Side & Unified Diff)**:
+  * Fast LCS (Longest Common Subsequence) line-by-line diff algorithm.
+  * Highlights additions (`+` green) and deletions (`-` red) with line numbers and change counts.
+  * Compare AI proposed code against the active editor file directly from chat with one tap (`[⚖️ Diff]`).
+  * One-tap `[✓ Apply to File]` button to merge changes instantly without manual copying.
+
 * **⚡ Native Android Bridge**:
   * Native clipboard copying with Android toast notifications.
   * Native Android Intent share sheet.

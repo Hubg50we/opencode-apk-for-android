@@ -709,6 +709,57 @@ function setupEventListeners() {
   document.getElementById('gh-btn-execute-push')?.addEventListener('click', executeGitHubPush);
   document.getElementById('gh-btn-execute-gist')?.addEventListener('click', executeGitHubGist);
 
+  // Terminal triggers
+  const toggleTerminal = () => {
+    triggerHaptic(20);
+    const drawer = document.getElementById('terminal-drawer');
+    if (!drawer) return;
+    drawer.classList.toggle('hidden');
+    if (!drawer.classList.contains('hidden')) {
+      switchTab('editor');
+      document.getElementById('terminal-input')?.focus();
+    }
+  };
+  document.getElementById('btn-terminal-toggle')?.addEventListener('click', toggleTerminal);
+  document.getElementById('editor-terminal-btn')?.addEventListener('click', toggleTerminal);
+  document.getElementById('terminal-close-btn')?.addEventListener('click', () => {
+    document.getElementById('terminal-drawer')?.classList.add('hidden');
+  });
+  document.getElementById('terminal-clear-btn')?.addEventListener('click', () => {
+    const out = document.getElementById('terminal-output');
+    if (out) out.innerText = '';
+  });
+
+  const termInput = document.getElementById('terminal-input');
+  if (termInput) {
+    termInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const cmd = termInput.value.trim();
+        if (cmd) {
+          executeTerminalCommand(cmd);
+          termInput.value = '';
+        }
+      }
+    });
+  }
+
+  document.querySelectorAll('.term-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      triggerHaptic(15);
+      const cmd = chip.dataset.cmd;
+      if (cmd) executeTerminalCommand(cmd);
+    });
+  });
+
+  // Diff triggers
+  document.getElementById('editor-diff-btn')?.addEventListener('click', openCurrentFileDiff);
+  document.getElementById('diff-modal-close-btn')?.addEventListener('click', closeDiffModal);
+  document.getElementById('diff-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'diff-modal') closeDiffModal();
+  });
+  document.getElementById('diff-accept-btn')?.addEventListener('click', applyPendingDiff);
+  document.getElementById('diff-reject-btn')?.addEventListener('click', closeDiffModal);
+
   // Clear chat
   document.getElementById('btn-new-chat').addEventListener('click', () => {
     triggerHaptic(20);
@@ -1325,6 +1376,7 @@ function renderMarkdown(md) {
           <span>${cleanLang}</span>
           <div class="code-actions">
             <button class="code-action-btn" data-action="copy">📋 Copy</button>
+            <button class="code-action-btn" data-action="diff">⚖️ Diff</button>
             <button class="code-action-btn" data-action="send-editor">📝 Open in Editor</button>
           </div>
         </div>
@@ -1352,6 +1404,17 @@ function bindCodeBlockButtons(rootElement) {
     btn.onclick = () => {
       const code = btn.closest('.code-container').querySelector('code').innerText;
       triggerNativeCopy(code);
+    };
+  });
+
+  rootElement.querySelectorAll('.code-action-btn[data-action="diff"]').forEach(btn => {
+    btn.onclick = () => {
+      const code = btn.closest('.code-container').querySelector('code').innerText;
+      triggerHaptic(20);
+      const activeFile = AppState.files[AppState.activeFileIndex];
+      const targetName = activeFile ? activeFile.name : 'active file';
+      const originalText = activeFile ? activeFile.content : '';
+      openDiffViewer(originalText, code, targetName);
     };
   });
 
@@ -2354,5 +2417,454 @@ async function executeGitHubGist() {
     logGitHubStatus(`Gist failed: ${err.message}`, true);
     showToast(`Gist error: ${err.message}`);
   }
+}
+
+// --- VIRTUAL BASH TERMINAL ENGINE ---
+let terminalHistory = [];
+let terminalHistoryIdx = -1;
+
+function printToTerminal(text, type = 'normal') {
+  const out = document.getElementById('terminal-output');
+  if (!out) return;
+  const line = document.createElement('div');
+  line.className = `term-line ${type}`;
+  if (type === 'cmd') line.style.color = '#38bdf8';
+  else if (type === 'error') line.style.color = '#f85149';
+  else if (type === 'success') line.style.color = '#3fb950';
+  else if (type === 'warn') line.style.color = '#e3b341';
+  line.innerText = text;
+  out.appendChild(line);
+  const body = document.getElementById('terminal-body');
+  if (body) body.scrollTop = body.scrollHeight;
+}
+
+async function executeTerminalCommand(cmdLine) {
+  const raw = cmdLine.trim();
+  if (!raw) return;
+
+  terminalHistory.push(raw);
+  terminalHistoryIdx = terminalHistory.length;
+  printToTerminal(`opencode@mobile:~$ ${raw}`, 'cmd');
+
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  switch (cmd) {
+    case 'help':
+    case 'man':
+      printToTerminal(
+`OpenCode Virtual Bash Shell v2.4.0
+Available commands:
+  ls, dir [-la]          List workspace files and sizes
+  cat <filename>         Display contents of a file
+  touch <filename>       Create a new file
+  rm <filename>          Delete a file
+  echo <txt> [> file]    Print text or write to file
+  grep [-i] <pat> [file] Search for pattern in file(s)
+  wc [filename]          Word, line and character count
+  python, py <file|code> Run Python in WebAssembly
+  node, js <file|code>   Run JavaScript in sandbox
+  git status, log, diff  Workspace git status & diff
+  diff [file1] [file2]   Launch visual diff viewer
+  curl <url>             HTTP GET request to URL
+  theme [theme-name]     List or switch UI theme
+  clear, cls             Clear terminal display
+  pwd, whoami, uname     System environment info
+  help                   Show this help menu`, 'success');
+      break;
+
+    case 'clear':
+    case 'cls':
+      const out = document.getElementById('terminal-output');
+      if (out) out.innerText = '';
+      break;
+
+    case 'pwd':
+      printToTerminal('/data/user/0/com.hubg50we.oc/files/workspace');
+      break;
+
+    case 'whoami':
+      printToTerminal('opencode-dev (uid=10284, gid=10284)');
+      break;
+
+    case 'uname':
+      printToTerminal('Linux opencode-android 5.15.0-arm64 #1 SMP Android aarch64');
+      break;
+
+    case 'ls':
+    case 'dir':
+      if (AppState.files.length === 0) {
+        printToTerminal('(workspace is empty)');
+      } else {
+        const lines = AppState.files.map(f => {
+          const sz = (f.content ? f.content.length : 0);
+          return `-rw-r--r-- 1 dev dev ${String(sz).padStart(6, ' ')} ${f.name}`;
+        }).join('\n');
+        printToTerminal(lines);
+      }
+      break;
+
+    case 'cat':
+      if (args.length === 0) {
+        printToTerminal('Usage: cat <filename>', 'error');
+      } else {
+        const fname = args[0];
+        const f = AppState.files.find(item => item.name === fname || item.name.endsWith('/' + fname));
+        if (!f) {
+          printToTerminal(`cat: ${fname}: No such file in workspace`, 'error');
+        } else {
+          printToTerminal(f.content || '(empty)');
+        }
+      }
+      break;
+
+    case 'touch':
+      if (args.length === 0) {
+        printToTerminal('Usage: touch <filename>', 'error');
+      } else {
+        const fname = args[0];
+        if (AppState.files.some(f => f.name === fname)) {
+          printToTerminal(`touch: updated timestamp for ${fname}`);
+        } else {
+          AppState.files.push({ name: fname, language: fname.split('.').pop() || 'txt', content: '' });
+          renderFilesTabs();
+          renderFilesList();
+          printToTerminal(`Created ${fname}`, 'success');
+        }
+      }
+      break;
+
+    case 'rm':
+      if (args.length === 0) {
+        printToTerminal('Usage: rm <filename>', 'error');
+      } else {
+        const fname = args[0];
+        const idx = AppState.files.findIndex(f => f.name === fname);
+        if (idx === -1) {
+          printToTerminal(`rm: cannot remove '${fname}': No such file`, 'error');
+        } else {
+          AppState.files.splice(idx, 1);
+          AppState.activeFileIndex = Math.max(0, AppState.activeFileIndex - 1);
+          renderFilesTabs();
+          renderFilesList();
+          renderFileContent();
+          printToTerminal(`Removed ${fname}`, 'success');
+        }
+      }
+      break;
+
+    case 'echo':
+      if (raw.includes('>')) {
+        const gtIdx = raw.indexOf('>');
+        const isAppend = raw.includes('>>');
+        const textPart = raw.slice(4, isAppend ? raw.indexOf('>>') : gtIdx).trim().replace(/^['"]|['"]$/g, '');
+        const targetFile = raw.slice(isAppend ? raw.indexOf('>>') + 2 : gtIdx + 1).trim();
+        if (!targetFile) {
+          printToTerminal('echo: missing target filename', 'error');
+          break;
+        }
+        let f = AppState.files.find(item => item.name === targetFile);
+        if (!f) {
+          f = { name: targetFile, language: targetFile.split('.').pop() || 'txt', content: '' };
+          AppState.files.push(f);
+        }
+        if (isAppend) {
+          f.content = (f.content || '') + '\n' + textPart;
+        } else {
+          f.content = textPart;
+        }
+        renderFilesTabs();
+        renderFilesList();
+        renderFileContent();
+        printToTerminal(`Wrote to ${targetFile}`, 'success');
+      } else {
+        printToTerminal(args.join(' ').replace(/^['"]|['"]$/g, ''));
+      }
+      break;
+
+    case 'grep':
+      if (args.length === 0) {
+        printToTerminal('Usage: grep <pattern> [filename]', 'error');
+      } else {
+        const pat = args[0];
+        const target = args[1];
+        let foundCount = 0;
+        const targets = target ? AppState.files.filter(f => f.name === target) : AppState.files;
+        targets.forEach(f => {
+          const lines = (f.content || '').split('\n');
+          lines.forEach((l, lIdx) => {
+            if (l.includes(pat)) {
+              printToTerminal(`${f.name}:${lIdx + 1}: ${l}`);
+              foundCount++;
+            }
+          });
+        });
+        if (foundCount === 0) printToTerminal(`grep: pattern '${pat}' not found`, 'warn');
+      }
+      break;
+
+    case 'wc':
+      const targetWc = args[0] ? AppState.files.filter(f => f.name === args[0]) : AppState.files;
+      if (targetWc.length === 0) {
+        printToTerminal(`wc: file not found: ${args[0]}`, 'error');
+      } else {
+        targetWc.forEach(f => {
+          const lines = (f.content || '').split('\n').length;
+          const words = (f.content || '').trim().split(/\s+/).filter(Boolean).length;
+          const chars = (f.content || '').length;
+          printToTerminal(`${String(lines).padStart(5)} ${String(words).padStart(5)} ${String(chars).padStart(6)} ${f.name}`);
+        });
+      }
+      break;
+
+    case 'py':
+    case 'python':
+    case 'python3':
+      if (args.length === 0) {
+        printToTerminal('Usage: python <filename.py> or python -c "<code>"', 'error');
+      } else {
+        let pyCode = '';
+        if (args[0] === '-c') {
+          pyCode = args.slice(1).join(' ').replace(/^['"]|['"]$/g, '');
+        } else {
+          const f = AppState.files.find(item => item.name === args[0]);
+          if (!f) {
+            printToTerminal(`python: can't open file '${args[0]}': [Errno 2] No such file`, 'error');
+            break;
+          }
+          pyCode = f.content;
+        }
+        printToTerminal('[Running Python WebAssembly execution...]');
+        const mockConsole = {
+          innerHTML: '',
+          set innerHTML(val) {
+            const stripped = val.replace(/<[^>]+>/g, '').trim();
+            if (stripped) printToTerminal(stripped);
+          }
+        };
+        await runPythonCode(pyCode, mockConsole);
+      }
+      break;
+
+    case 'node':
+    case 'js':
+      if (args.length === 0) {
+        printToTerminal('Usage: node <filename.js> or node -e "<code>"', 'error');
+      } else {
+        let jsCode = '';
+        if (args[0] === '-e') {
+          jsCode = args.slice(1).join(' ').replace(/^['"]|['"]$/g, '');
+        } else {
+          const f = AppState.files.find(item => item.name === args[0]);
+          if (!f) {
+            printToTerminal(`node: cannot find module '${args[0]}'`, 'error');
+            break;
+          }
+          jsCode = f.content;
+        }
+        try {
+          let termLogs = [];
+          const customConsole = {
+            log: (...a) => termLogs.push(a.map(x => typeof x === 'object' ? JSON.stringify(x) : x).join(' ')),
+            error: (...a) => termLogs.push('❌ ' + a.join(' ')),
+            warn: (...a) => termLogs.push('⚠️ ' + a.join(' '))
+          };
+          const runner = new Function('console', jsCode);
+          runner(customConsole);
+          if (termLogs.length) {
+            termLogs.forEach(l => printToTerminal(l));
+          } else {
+            printToTerminal('✓ Script completed with 0 errors (no stdout).', 'success');
+          }
+        } catch (err) {
+          printToTerminal(`JavaScript Error: ${err.message}`, 'error');
+        }
+      }
+      break;
+
+    case 'git':
+      const sub = (args[0] || 'status').toLowerCase();
+      if (sub === 'status') {
+        printToTerminal(
+`On branch main
+Your branch is up to date with 'origin/main'.
+
+Workspace files (${AppState.files.length} tracked):
+${AppState.files.map(f => '  ' + f.name).join('\n')}
+
+nothing to commit, working tree clean`, 'success');
+      } else if (sub === 'log') {
+        printToTerminal(
+`* c9fea5c (HEAD -> main, tag: v2.3.2) fix(dom): Align export button DOM IDs & add automated integrity test suite
+* 8d5149b (tag: v2.3.1) feat(ui): Redesign brand UI logo to futuristic quantum code emblem
+* 94a88db (tag: v2.3.0) feat(v2.3.0): Expansion pack - Python WASM runner, GitHub sync, custom themes & ZIP export`, 'success');
+      } else if (sub === 'diff') {
+        openCurrentFileDiff();
+        printToTerminal('Opened Visual Code Diff Viewer for active file.', 'success');
+      } else {
+        printToTerminal(`git: '${sub}' is simulated in OpenCode. Try 'git status', 'git log', 'git diff'.`, 'warn');
+      }
+      break;
+
+    case 'diff':
+      openCurrentFileDiff();
+      printToTerminal('Opened Visual Code Diff Viewer.', 'success');
+      break;
+
+    case 'curl':
+      if (args.length === 0) {
+        printToTerminal('Usage: curl <url>', 'error');
+      } else {
+        const url = args[0];
+        printToTerminal(`Fetching ${url}...`);
+        try {
+          const res = await fetch(url);
+          const text = await res.text();
+          printToTerminal(`HTTP ${res.status} ${res.statusText}\n${text.slice(0, 1000)}${text.length > 1000 ? '\n... (truncated)' : ''}`);
+        } catch (e) {
+          printToTerminal(`curl: (6) Could not resolve host: ${e.message}`, 'error');
+        }
+      }
+      break;
+
+    case 'theme':
+      if (args.length === 0) {
+        printToTerminal(`Active Theme: ${currentThemeId}\nAvailable: ${Object.keys(THEMES_REGISTRY).join(', ')}`);
+      } else {
+        const targetTheme = args[0].startsWith('theme-') ? args[0] : `theme-${args[0]}`;
+        if (THEMES_REGISTRY[targetTheme]) {
+          applyTheme(targetTheme);
+          printToTerminal(`Applied theme: ${THEMES_REGISTRY[targetTheme].name}`, 'success');
+        } else {
+          printToTerminal(`Unknown theme: ${args[0]}. Choose from: ${Object.keys(THEMES_REGISTRY).join(', ')}`, 'error');
+        }
+      }
+      break;
+
+    default:
+      printToTerminal(`bash: ${cmd}: command not found. Type 'help' for available commands.`, 'error');
+      break;
+  }
+}
+
+// --- VISUAL CODE DIFF VIEWER ENGINE ---
+let currentPendingDiff = null;
+
+function computeLineDiff(oldText, newText) {
+  const a = (oldText || '').split('\n');
+  const b = (newText || '').split('\n');
+  const n = a.length;
+  const m = b.length;
+
+  const dp = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < m; j++) {
+      if (a[i] === b[j]) {
+        dp[i + 1][j + 1] = dp[i][j] + 1;
+      } else {
+        dp[i + 1][j + 1] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+  }
+
+  let i = n, j = m;
+  const result = [];
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
+      result.push({ type: 'unchanged', text: a[i - 1], lineOld: i, lineNew: j });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      result.push({ type: 'added', text: b[j - 1], lineNew: j });
+      j--;
+    } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
+      result.push({ type: 'removed', text: a[i - 1], lineOld: i });
+      i--;
+    }
+  }
+  return result.reverse();
+}
+
+function openDiffViewer(originalText, proposedText, targetFilename = 'active file') {
+  triggerHaptic(20);
+  currentPendingDiff = {
+    targetFilename,
+    proposedContent: proposedText
+  };
+
+  const modal = document.getElementById('diff-modal');
+  const targetLabel = document.getElementById('diff-target-filename');
+  const container = document.getElementById('diff-container');
+  const addCountEl = document.getElementById('diff-additions-count');
+  const delCountEl = document.getElementById('diff-deletions-count');
+
+  if (targetLabel) targetLabel.innerText = targetFilename;
+
+  const diffOps = computeLineDiff(originalText, proposedText);
+  let additions = 0;
+  let deletions = 0;
+
+  const renderedHtml = diffOps.map((op, idx) => {
+    let lineNum = '';
+    let prefix = ' ';
+    if (op.type === 'added') {
+      additions++;
+      lineNum = op.lineNew || (idx + 1);
+      prefix = '+';
+    } else if (op.type === 'removed') {
+      deletions++;
+      lineNum = op.lineOld || (idx + 1);
+      prefix = '-';
+    } else {
+      lineNum = op.lineNew || (idx + 1);
+      prefix = ' ';
+    }
+    return `
+      <div class="diff-line ${op.type}">
+        <span class="diff-line-num">${lineNum}</span>
+        <span class="diff-line-prefix">${prefix}</span>
+        <span class="diff-line-text">${escapeHtml(op.text)}</span>
+      </div>
+    `;
+  }).join('');
+
+  if (addCountEl) addCountEl.innerText = `+${additions} additions`;
+  if (delCountEl) delCountEl.innerText = `-${deletions} deletions`;
+  if (container) container.innerHTML = renderedHtml || '<div style="padding:16px; color:var(--text-muted); text-align:center;">Files are identical (0 differences).</div>';
+
+  if (modal) modal.classList.add('active');
+}
+
+function openCurrentFileDiff() {
+  const activeFile = AppState.files[AppState.activeFileIndex];
+  if (!activeFile) {
+    showToast('No active file in workspace');
+    return;
+  }
+  const currentContent = document.getElementById('code-editor-textarea')?.value || activeFile.content || '';
+  const proposed = prompt('Paste proposed code to compare against active file:');
+  if (proposed !== null) {
+    openDiffViewer(currentContent, proposed, activeFile.name);
+  }
+}
+
+function closeDiffModal() {
+  const modal = document.getElementById('diff-modal');
+  if (modal) modal.classList.remove('active');
+  currentPendingDiff = null;
+}
+
+function applyPendingDiff() {
+  if (!currentPendingDiff) return;
+  triggerHaptic(25);
+  const activeFile = AppState.files[AppState.activeFileIndex];
+  if (activeFile) {
+    activeFile.content = currentPendingDiff.proposedContent;
+    renderFileContent();
+    renderFilesTabs();
+    showToast(`✓ Applied diff changes to ${activeFile.name}`);
+  }
+  closeDiffModal();
 }
 

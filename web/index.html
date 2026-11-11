@@ -39,6 +39,7 @@
           <span class="model-pill-badge"></span>
           <span class="model-pill-text" id="model-pill-text">OpenCode AI</span>
         </button>
+        <button class="btn-icon" id="btn-terminal-toggle" title="Virtual Bash Terminal">💻</button>
         <button class="btn-icon" id="btn-theme-toggle" title="Switch Theme">🎨</button>
         <button class="btn-icon" id="btn-github-sync" title="GitHub Sync">🐙</button>
         <button class="btn-icon" id="btn-split-toggle" title="Toggle Split Screen (Tablets/Pads)">◫</button>
@@ -108,6 +109,8 @@
             <div class="file-tabs" id="file-tabs"></div>
             <div class="editor-actions">
               <button class="editor-btn run" id="editor-run-btn" title="Run in Sandbox">▶ Run</button>
+              <button class="editor-btn" id="editor-terminal-btn" title="Open Terminal Shell">💻 Term</button>
+              <button class="editor-btn" id="editor-diff-btn" title="Visual Code Diff">⚖️ Diff</button>
               <button class="editor-btn" id="editor-ai-btn" title="Ask AI about code">✨ Ask AI</button>
               <button class="editor-btn" id="editor-copy-btn" title="Copy code">📋</button>
               <button class="editor-btn" id="editor-share-btn" title="Share code">↗</button>
@@ -124,6 +127,38 @@
               <button class="btn-icon" id="sandbox-close-btn" style="width:24px; height:24px; color:#fff;">✕</button>
             </div>
             <div class="sandbox-console" id="sandbox-console"></div>
+          </div>
+
+          <!-- Virtual Terminal Shell Drawer -->
+          <div class="terminal-drawer hidden" id="terminal-drawer">
+            <div class="terminal-header">
+              <div class="terminal-title">
+                <span class="terminal-dot red"></span>
+                <span class="terminal-dot yellow"></span>
+                <span class="terminal-dot green"></span>
+                <span>💻 OpenCode Virtual Bash Terminal</span>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <button class="terminal-mini-btn" id="terminal-clear-btn" title="Clear Screen">Clear</button>
+                <button class="btn-icon" id="terminal-close-btn" style="width:24px; height:24px; color:#fff;">✕</button>
+              </div>
+            </div>
+            <div class="terminal-quick-chips">
+              <span class="term-chip" data-cmd="ls -la">ls -la</span>
+              <span class="term-chip" data-cmd="python app.py">py app.py</span>
+              <span class="term-chip" data-cmd="node main.js">node main.js</span>
+              <span class="term-chip" data-cmd="git status">git status</span>
+              <span class="term-chip" data-cmd="help">help</span>
+            </div>
+            <div class="terminal-body" id="terminal-body">
+              <div class="terminal-output" id="terminal-output">OpenCode Virtual Bash Shell v2.4.0 (arm64-android)
+Type 'help' for command list. All commands run live in-memory.
+</div>
+              <div class="terminal-input-line">
+                <span class="terminal-prompt">opencode@mobile:~$</span>
+                <input type="text" id="terminal-input" class="terminal-input" placeholder="Type command (e.g. ls, cat, python, help)..." autocomplete="off" spellcheck="false">
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -302,6 +337,32 @@
           </div>
 
           <div id="gh-status-log" style="display:none; margin-top:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Code Diff Viewer Modal -->
+    <div class="modal-overlay" id="diff-modal">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">⚖️ Visual Code Diff Viewer</div>
+          <button class="btn-icon" id="diff-modal-close-btn">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 14px; display:flex; flex-direction:column; height:calc(100% - 50px);">
+          <div class="diff-file-selector" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap;">
+            <div style="font-size:13px; font-weight:600; color:var(--text-secondary);">
+              Target File: <span id="diff-target-filename" style="color:var(--accent-blue);">main.js</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-primary" id="diff-accept-btn" style="padding:4px 10px; font-size:12px;">✓ Apply to File</button>
+              <button class="btn-secondary" id="diff-reject-btn" style="padding:4px 10px; font-size:12px;">✕ Discard</button>
+            </div>
+          </div>
+          <div class="diff-stats" id="diff-stats" style="font-size:12px; margin-bottom:8px; color:var(--text-secondary); display:flex; gap:12px;">
+            <span id="diff-additions-count" style="color:var(--accent-green); font-weight:600;">+0 additions</span>
+            <span id="diff-deletions-count" style="color:var(--accent-red); font-weight:600;">-0 deletions</span>
+          </div>
+          <div class="diff-container" id="diff-container"></div>
         </div>
       </div>
     </div>
